@@ -1,0 +1,38 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.3">
+			<PrivateAssets>all</PrivateAssets>
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
+		<PackageReference Include="Microsoft.EntityFrameworkCore.DynamicLinq" Version="8.6.1" />
+		<PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="9.0.3" />
+		<PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="9.0.3">
+			<PrivateAssets>all</PrivateAssets>
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
+		<PackageReference Include="Radzen.Blazor" Version="6.4.0" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Folder Include="Components\Dialogs\" />
+	</ItemGroup>
+</Project>
+<!--
+TODO:
+- Update user achievements' goal progress too when achievement's goal is updated
+- Add cancel button to the UserAchievementItem.razor
+- [OK] Add view mode / edit mode to the UserAchievementItem.razor
+- [OK] Add a button for assigning all achievements to all users
+- [OK] Add ekpand/collapse all button to the Home.razor for user achievements
+- [OK] Icons for the achievements
+- [OK] Add filtering to the grids
+- [OK] Add description to the achievements view	
+
+-->

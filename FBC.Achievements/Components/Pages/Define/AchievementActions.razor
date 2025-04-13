@@ -1,0 +1,57 @@
+﻿@attribute [Route(C.NAV.Define.AchievementActions + "{Id:int}")]
+@inject DB db
+@inject Radzen.NotificationService NTF
+@inject DialogService DLG
+@inject NavigationManager NavigationManager
+
+<h3>Başarım İşlemleri</h3>
+@if (Achievement == null)
+{
+    <p>Başarım yükleniyor...</p>
+}
+else
+{
+
+    <RadzenCard>
+        <RadzenStack Orientation="Orientation.Vertical">
+            <label><strong>Kazanım:</strong> @Achievement.Title</label>
+            <label><strong>Açıklama:</strong> @Achievement.Description</label>
+            <label><strong>Hedef:</strong> @Achievement.Goal</label>
+            <AssignTheAchievementToAllUsers Achievement="Achievement" ShowAchievementDetails="false"  OnNewUsersAssigned="() => aul?.Refresh()"/>
+        </RadzenStack>
+        @*     <RadzenCardHeader>
+        <h3 class="card-title">Tüm Kullanıcılara Başarım Ver</h3>
+    </RadzenCardHeader>
+    <RadzenCardBody>
+        <p>Bu işlem tüm kullanıcılar için başarım kaydı oluşturacaktır. Devam etmek istiyor musunuz?</p>
+    </RadzenCardBody>
+    <RadzenCardFooter>
+        <RadzenButton ButtonType="ButtonType.Button" Text="İptal" Click="@(() => DLG.Close(false))" />
+        <RadzenButton ButtonType="ButtonType.Button" Text="Devam Et" Click="@(() => DLG.Close(true))" />
+    </RadzenCardFooter> *@
+    </RadzenCard>
+    <RadzenCard>
+        <AchievementUserList @ref="aul" AchievementId="Id" />
+    </RadzenCard>
+
+}
+@code {
+    [Parameter]
+    public int Id { get; set; }
+
+    private DBAchievement? Achievement { get; set; } = new DBAchievement();
+    private AchievementUserList? aul { get; set; }
+    // [Parameter]
+    // [SupplyParameterFromQuery(Name = C.NAV.Params.Redirect)]
+    // public string? Redirect { get; set; }
+    //Loaad the achievement from the database
+    protected override async Task OnInitializedAsync()
+    {
+        Achievement = await db.Achievements.AsNoTracking().FirstOrDefaultAsync(x => x.Id == Id);
+        if (Achievement == null)
+        {
+            NTF.Notify(new NotificationMessage() { Severity = NotificationSeverity.Error, Summary = "Başarım bulunamadı", Duration = 5000 });
+            NavigationManager.NavigateTo(C.NAV.Define.Achievements);
+        }
+    }
+}

@@ -1,0 +1,321 @@
+﻿@attribute [Route(C.NAV.Define.Achievements)]
+@inject DB db
+@inject Radzen.NotificationService NTF
+@inject DialogService DLG
+@inject NavigationManager NAV
+@inject IWebHostEnvironment env
+
+<h1>Başarımlar</h1>
+<RadzenDataGrid @ref="grid" Count="@(nonFilteredTotalCount)" Data="@data"
+                TItem="DBAchievement"
+                LoadData="@LoadData"
+                AllowSorting="true"
+                AllowFiltering="true"
+                AllowColumnPicking="false"
+                AllowPaging="true"
+                PagerHorizontalAlign="HorizontalAlign.Center"
+                PageSizeOptions="new int[]{10,20,50,100,500}"
+                PagerPosition="PagerPosition.TopAndBottom"
+                PageSize="10"
+                EditMode="DataGridEditMode.Single"
+                ShowPagingSummary="true">
+    <HeaderTemplate>
+        <RadzenButton ButtonStyle="ButtonStyle.Success" Icon="add_circle" Text="Yeni Başarım Tanımı" Click="@InsertRow" Disabled="isInEditOrInsertMode" />
+    </HeaderTemplate>
+    <Columns>
+        <RadzenDataGridColumn TItem="DBModels.DBAchievement" Property="Id" Title="Id" Pickable="false" Width="100px" />
+        <RadzenDataGridColumn Title="Resim" Filterable="false" Sortable="false">
+
+            <Template>
+                <RadzenImage Path="@($"{C.Static.GetAchievementPictureWebPathOrDefault(env,context.Id)}?v={Guid.NewGuid()}")" Style="width:64px; height:64px" AlternateText="Başarım" />
+                @if (context.Id > 0)
+                {
+                        <RadzenUpload Multiple="false"
+                                      ChooseText="Resim Seç"
+                                      Accept=".jpg"
+                                      Change="(args) => OnChange(args, context)"
+                                      InputAttributes="@(new Dictionary<string,object>{ { "aria-label", "select file" }})" />
+                }
+                @if (File.Exists(C.Static.GetAchievementPictureFilePath(env, context.Id)))
+                {
+                        <RadzenButton Icon="delete" ButtonStyle="ButtonStyle.Danger" Variant="Variant.Flat" Size="ButtonSize.Medium" Shade="Shade.Lighter" Click="@(() => DeleteRowPictue(context))" @onclick:stopPropagation="true" />
+                }
+            </Template>
+            <EditTemplate>
+                <RadzenText>Kayıt işlemini tamamla</RadzenText>
+            </EditTemplate>
+        </RadzenDataGridColumn>
+        <RadzenDataGridColumn TItem="DBModels.DBAchievement" Property="Title" Title="İsim" Pickable="false">
+            <EditTemplate>
+                <RadzenTextBox @bind-Value="@(context.Title)" Name="Title" Style="width: 100%;" />
+            </EditTemplate>
+        </RadzenDataGridColumn>
+        <RadzenDataGridColumn TItem="DBModels.DBAchievement" Property="Description" Title="Açıklama" Pickable="false">
+            <EditTemplate>
+                <RadzenTextBox @bind-Value="@(context.Description)" Name="Title" Style="width: 100%;" />
+            </EditTemplate>
+        </RadzenDataGridColumn>
+        <RadzenDataGridColumn TItem="DBModels.DBAchievement" Property="Goal" Title="Hedef" Pickable="false">
+            <EditTemplate>
+                <RadzenNumeric @bind-Value="context.Goal" Style="width:100%; display: block;" />
+            </EditTemplate>
+        </RadzenDataGridColumn>
+        <RadzenDataGridColumn Filterable="false" Sortable="false" TextAlign="TextAlign.Right" Frozen="true" FrozenPosition="FrozenColumnPosition.Right">
+            <Template>
+                @* <RadzenButton Icon="add_circle" ButtonStyle="ButtonStyle.Success" Variant="Variant.Flat" Size="ButtonSize.Medium" Shade="Shade.Lighter" Click="@(() => InsertAfterRow(order))" title="Add new row after this row" Disabled="@(editMode == DataGridEditMode.Single && ordersToInsert.Count() > 0)" /> *@
+                <RadzenButton Icon="edit" ButtonStyle="ButtonStyle.Light" Variant="Variant.Flat" Size="ButtonSize.Medium" class="rz-my-1 rz-ms-1" Click="@(args => EditRow(context))" @onclick:stopPropagation="true" />
+                <RadzenButton Icon="delete" ButtonStyle="ButtonStyle.Danger" Variant="Variant.Flat" Size="ButtonSize.Medium" Shade="Shade.Lighter" class="rz-my-1 rz-ms-1" Click="@(args => DeleteRow(context))" @onclick:stopPropagation="true" />
+                <RadzenButton Icon="settings" ButtonStyle="ButtonStyle.Primary" Variant="Variant.Flat" Size="ButtonSize.Medium" Shade="Shade.Lighter" class="rz-my-1 rz-ms-1" Click="@(args => NAV.NavigateTo(C.NAV.Define.AchievementActions + context.Id))" @onclick:stopPropagation="true" />
+
+            </Template>
+            <EditTemplate>
+                <RadzenButton Icon="check" ButtonStyle="ButtonStyle.Success" Variant="Variant.Flat" Size="ButtonSize.Medium" Click="@((args) => SaveRow(context))" aria-label="Save" />
+                <RadzenButton Icon="close" ButtonStyle="ButtonStyle.Light" Variant="Variant.Flat" Size="ButtonSize.Medium" class="rz-my-1 rz-ms-1" Click="@((args) => CancelEdit(context))" aria-label="Cancel" />
+            </EditTemplate>
+        </RadzenDataGridColumn>
+    </Columns>
+</RadzenDataGrid>
+@code {
+    private List<DBModels.DBAchievement>? data;
+    private RadzenDataGrid<DBModels.DBAchievement>? grid;
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (firstRender)
+        {
+            grid?.LocalizeGrid();
+        }
+    }
+    private int nonFilteredTotalCount;
+    private bool isInEditOrInsertMode = false;
+
+    // protected override void OnInitialized()
+    // {
+    //     data = Enumerable.Empty<DBModels.DBAchievement>().ToList(); // Initialize with an empty list to avoid InsertRow is not working issue
+    // }
+    // protected override async Task OnInitializedAsync()
+    // {
+    //     await base.OnInitializedAsync();
+    //     data = Enumerable.Empty<DBModels.DBAchievement>().ToList(); // Initialize with an empty list to avoid InsertRow is not working issue
+
+    // }
+
+    private async Task LoadData(LoadDataArgs args)
+    {
+        var resultData = db.Achievements.LoadData(args);
+        if (resultData.Success)
+        {
+            nonFilteredTotalCount = resultData.TotalCount;
+            this.data = resultData.Data;
+        }
+        else
+        {
+            if (resultData.Messages?.Any() == true)
+            {
+                var m = string.Join(Environment.NewLine, resultData.Messages);
+                NTF.Notify(new NotificationMessage()
+                    {
+                        Severity = NotificationSeverity.Error,
+                        Summary = "Error",
+                        Detail = m,
+                        Duration = 5000
+                    });
+            }
+            else
+            {
+                NTF.Notify(new NotificationMessage()
+                    {
+                        Severity = NotificationSeverity.Error,
+                        Summary = "Error",
+                        Detail = "Unknown error",
+                        Duration = 5000
+                    });
+            }
+        }
+
+        await Task.CompletedTask;
+    }
+    async Task InsertRow()
+    {
+        if (grid?.IsValid != true) return;
+        var itemToInsertOrEdit = new DBAchievement();
+        if (nonFilteredTotalCount <= 0) nonFilteredTotalCount = 1; // Set the total count to 1 to avoid the "InsertRow is not working" issue
+        await grid!.InsertRow(itemToInsertOrEdit);
+        isInEditOrInsertMode = true;
+    }
+
+
+
+    void EditRow(DBAchievement order)
+    {
+        // ordersToInsert.Add(order);
+        isInEditOrInsertMode = true;
+        grid!.EditRow(order);
+    }
+    async void DeleteRow(DBAchievement item)
+    {
+        if (item == null) return;
+
+        var r = await DLG.Confirm($"Bu başarım ({item.Title}) ve başarıma ait kullanıcı kayıtları silinecektir", "Silme işlemini onayla", new ConfirmOptions() { OkButtonText = "Evet", CancelButtonText = "Hayır" });
+        if (r == true)
+        {
+            var dr = db.DeleteAchievement(item.Id);
+            if (dr.Success)
+            {
+                NTF.Notify(new NotificationMessage()
+                    {
+                        Severity = NotificationSeverity.Success,
+                        Summary = "Başarımlar",
+                        Detail = "Başarım başarıyla silindi.",
+                        Duration = 5000
+                    });
+            }
+            else
+            {
+                foreach (var err in dr.Messages)
+                {
+                    NTF.Notify(new NotificationMessage()
+                        {
+                            Severity = NotificationSeverity.Error,
+                            Summary = "Error",
+                            Detail = err,
+                            Duration = 5000
+                        });
+                }
+            }
+            await grid!.Reload();
+        }
+    }
+    void CancelEdit(DBAchievement item)
+    {
+        grid!.CancelEditRow(item);
+        isInEditOrInsertMode = false;
+    }
+    void SaveRow(DBAchievement item)
+    {
+        if (item == null) return;
+        // grid!.UpdateRow(item);
+
+        var r = item.Id > 0 ? db.UpdateAchievement(item) : db.AddAchievement(item);
+        if (r.Success)
+        {
+            NTF.Notify(new NotificationMessage()
+                {
+                    Severity = NotificationSeverity.Success,
+                    Summary = "Başarımlar",
+                    Detail = $"Başarım başarıyla {(item.Id > 0 ? "güncellendi" : "eklendi")}.",
+                    Duration = 5000
+                });
+            grid!.CancelEditRow(item);
+            isInEditOrInsertMode = false;
+            grid!.Reload();
+        }
+        else
+        {
+            foreach (var err in r.Messages)
+            {
+                NTF.Notify(new NotificationMessage()
+                    {
+                        Severity = NotificationSeverity.Error,
+                        Summary = "Error",
+                        Detail = err,
+                        Duration = 5000
+                    });
+            }
+        }
+    }
+
+    async void OnChange(UploadChangeEventArgs args, DBAchievement id)
+    {
+        try
+        {
+            var file = args.Files.FirstOrDefault();
+            if (file!.Name.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase))
+            {
+                C.Static.CreateAchievementPicturesDirectoryIfNotExists(env);
+                var fileName = file.Name;
+                var filePath = C.Static.GetAchievementPictureFilePath(env, id.Id);
+                using (var stream = new FileStream(filePath, FileMode.Create))
+                {
+                    var source = file.OpenReadStream(maxAllowedSize: 1024 * 1024 * 10); // 10 MB
+                    await source.CopyToAsync(stream);
+                    // CancelEdit(id);
+                    // await grid.SelectRow(id);
+                    // await grid!.UpdateRow(id);
+                    await grid!.Reload();
+                    // source.CopyTo(stream);
+                }
+                NTF.Notify(new NotificationMessage()
+                    {
+                        Severity = NotificationSeverity.Success,
+                        Summary = "Başarım Resmi",
+                        Detail = "Başarım resmi başarıyla yüklendi.",
+                        Duration = 5000
+                    });
+            }
+            else
+            {
+                NTF.Notify(new NotificationMessage()
+                    {
+                        Severity = NotificationSeverity.Error,
+                        Summary = "Error",
+                        Detail = "Sadece .jpg dosyası yükleyebilirsiniz!",
+                        Duration = 5000
+                    });
+            }
+        }
+        catch (Exception ex)
+        {
+            NTF.Notify(new NotificationMessage()
+                {
+                    Severity = NotificationSeverity.Error,
+                    Summary = "Error",
+                    Detail = "Dosya yüklenirken hata oluştu: " + ex.Message,
+                    Duration = 5000
+                });
+        }
+    }
+    async void DeleteRowPictue(DBAchievement item)
+    {
+        try
+        {
+            if (item == null) return;
+            var r = await DLG.Confirm($"Bu başarım ({item.Title}) resmi silinecektir", "Silme işlemini onayla", new ConfirmOptions() { OkButtonText = "Evet", CancelButtonText = "Hayır" });
+            if (r == true)
+            {
+                var filePath = C.Static.GetAchievementPictureFilePath(env, item.Id);
+                if (File.Exists(filePath))
+                {
+                    File.Delete(filePath);
+                    NTF.Notify(new NotificationMessage()
+                        {
+                            Severity = NotificationSeverity.Success,
+                            Summary = "Başarım Resmi",
+                            Detail = "Başarım resmi başarıyla silindi.",
+                            Duration = 5000
+                        });
+                    await grid!.Reload();
+                }
+                else
+                {
+                    NTF.Notify(new NotificationMessage()
+                        {
+                            Severity = NotificationSeverity.Error,
+                            Summary = "Error",
+                            Detail = "Dosya bulunamadı!",
+                            Duration = 5000
+                        });
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            NTF.Notify(new NotificationMessage()
+                {
+                    Severity = NotificationSeverity.Error,
+                    Summary = "Error",
+                    Detail = "Dosya silinirken hata oluştu: " + ex.Message,
+                    Duration = 5000
+                });
+        }
+    }
+}

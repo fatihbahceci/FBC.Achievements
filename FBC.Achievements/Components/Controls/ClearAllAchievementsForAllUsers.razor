@@ -1,0 +1,92 @@
+﻿@namespace FBC.Achievements.Components.Controls
+@inject DB db;
+@inject Radzen.NotificationService NTF
+<h3>Tğm kullanıcılar için tüm başarımları sil</h3>
+<RadzenCard>
+    <RadzenStack Orientation="Orientation.Vertical">
+        <RadzenStack Orientation="Orientation.Vertical" AlignItems="AlignItems.Center">
+            @if (isProgressing)
+            {
+                <RadzenProgressBarCircular @ref="bar" Min="ubarMin" Max="ubarMax" Value="ubarValue" ShowValue="true" Mode="ProgressBarMode.Determinate" />
+            }
+            <RadzenButton ButtonType="ButtonType.Button" Text="İşleme başla" Click="@AssignAchievementToAllUsers" Disabled="isProgressing" />
+
+
+        </RadzenStack>
+        <EventConsole @ref=@console Title="İşlem detayları" ClearConsoleText="Temizle" />
+
+    </RadzenStack>
+</RadzenCard>
+@code {
+    EventConsole console;
+
+    bool isProgressing = false;
+    double ubarMin = 0;
+    double ubarMax = 100;
+    double ubarValue = 0;
+    int successCount = 0;
+    int errorCount = 0;
+    RadzenProgressBarCircular? bar;
+    //New users assigned event
+    [Parameter]
+    public EventCallback<bool> OnNewUsersAssigned { get; set; }
+    private async void AssignAchievementToAllUsers()
+    {
+        isProgressing = true;
+        var allUserAchievements = db.UserAchievements.AsNoTracking().ToList();
+        if (allUserAchievements?.Any() == true)
+        {
+            ubarMin = 0;
+            ubarMax = allUserAchievements.Count;
+            ubarValue = 0;
+            errorCount = 0;
+            successCount = 0;
+            foreach (var achievement in allUserAchievements)
+            {
+                console.Log($"Başarım siliniyor: {achievement.UserId} - {achievement.Id}");
+                try
+                {
+                    db.UserAchievements.Attach(achievement);
+                    db.UserAchievements.Remove(achievement);
+                    await db.SaveChangesAsync();
+                    successCount++;
+                }
+                catch (Exception ex)
+                {
+                    errorCount++;
+                    console.Log($"Başarım silinemedi: {ex.Message}");
+                }
+                // await Task.Delay(10);
+                //Trigger page refresh for blazor
+                await Task.Yield();
+                await InvokeAsync(StateHasChanged);
+                ubarValue++;
+            }
+        }
+        else
+        {
+            NTF.Notify(new NotificationMessage()
+                {
+                    Severity = NotificationSeverity.Warning,
+                    Summary = "Kayıt yok",
+                    Detail = $"Hiç başarım kaydı yok.",
+                    Duration = 5000
+                });
+        }
+        if (successCount + errorCount > 0)
+        {
+            var summaryMessage = $"Toplam: {successCount + errorCount}, Başarıyla Silinen: {successCount}, Hatalı: {errorCount}";
+            NTF.Notify(new NotificationMessage()
+                {
+                    Severity = NotificationSeverity.Success,
+                    Summary = "Başarım Silme İşlemi Tamamlandı",
+                    Detail = summaryMessage,
+                    Duration = 5000
+                });
+            console.Log(summaryMessage);
+        }
+        isProgressing = false;
+        await InvokeAsync(StateHasChanged);
+
+    }
+}

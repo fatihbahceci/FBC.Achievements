@@ -1,0 +1,37 @@
+﻿@namespace FBC.Achievements.Components.Controls
+@inject DB db;
+@inject Radzen.NotificationService NTF
+<h3>Başarım Kullanıcı Durumları</h3>
+<RadzenDataList TItem="WUserAchievement"
+Data="@userAchievements"
+AllowVirtualization="true"
+Style="height:400px; overflow:auto">
+    <Template>
+        <UserAchievementItem Model="@(context)" OnAssigmentDeleted="Refresh" />
+    </Template>
+
+</RadzenDataList>
+
+@code {
+    [Parameter]
+    public int AchievementId { get; set; }
+
+    List<WUserAchievement> userAchievements = new();
+    //Load list of users who have the achievement
+    protected override async Task OnInitializedAsync()
+    {
+        Refresh();
+
+        await Task.CompletedTask;
+    }
+
+    public void Refresh()
+    {
+        userAchievements = WUserAchievement.LoadByAchievementId(db, AchievementId);
+        if (userAchievements == null || userAchievements.Count == 0)
+        {
+            NTF.Notify(new NotificationMessage() { Severity = NotificationSeverity.Error, Summary = "Bu başarım hiçbir kullanıcıya tanımlanmamış.", Duration = 5000 });
+        }
+        StateHasChanged();
+    }
+}

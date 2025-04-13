@@ -1,0 +1,85 @@
+﻿@page "/"
+@inject DB db;
+@inject Radzen.NotificationService NTF
+<PageTitle>Başarım Listesi</PageTitle>
+<style>
+    .rz-panel-titlebar {
+        flex-direction: row-reverse;
+        justify-content: left;
+    }
+</style>
+<h1>Başarım Listesi</h1>
+<RadzenDataList TItem="WUserWithAchievements"
+                Data="@Model"
+                AllowVirtualization="true">
+    <Template>
+        <RadzenCard Variant="Variant.Outlined" class="rz-p-0" Style="width: 100%; overflow: hidden;">
+            <RadzenRow Gap="0">
+                <RadzenColumn Size="12" SizeLG="3" class="rz-p-4 product-title">
+                    @* <RadzenText TextStyle="TextStyle.H6" TagName="TagName.H5" class="rz-mb-0">Birey</RadzenText> *@
+                    <RadzenText TextStyle="TextStyle.H6" TagName="TagName.H5" class="rz-color-on-secondary-lighter">@(context.UserFullName)</RadzenText>
+                </RadzenColumn>
+                <RadzenColumn Size="12" SizeLG="3" class="rz-p-4 product-title">
+                    <RadzenText TextStyle="TextStyle.H6" TagName="TagName.H5" class="rz-mb-0">Skor</RadzenText>
+                    <RadzenText TextStyle="TextStyle.H6" TagName="TagName.H5" class="rz-color-on-secondary-lighter">@(context.Score)</RadzenText>
+                </RadzenColumn>
+
+            </RadzenRow>
+            <RadzenPanel AllowCollapse="true" Collapsed="true">
+                <HeaderTemplate>
+                    <RadzenText TextStyle="TextStyle.H6" class="rz-display-flex rz-align-items-center rz-m-0">
+                        <RadzenIcon Icon="account_box" class="rz-me-1" /><b>Başarımlar</b>
+                    </RadzenText>
+                </HeaderTemplate>
+                <ChildContent>
+                    <RadzenCard Style="width: 100%; overflow: hidden;">
+                        <RadzenRow>
+                            <RadzenColumn Size="12">
+                                <RadzenDataList TItem="WUserAchievement"
+                                                Data="@context.UserAchievements"
+                                                AllowVirtualization="true">
+                                    <Template Context="ua">
+                                        <UserAchievementItem Model="@(ua)" IsEditable="false" ShowUserName="false" />
+                                    </Template>
+                                </RadzenDataList>
+                            </RadzenColumn>
+                        </RadzenRow>
+                    </RadzenCard>
+                </ChildContent>
+            </RadzenPanel>
+        </RadzenCard>
+
+
+
+    </Template>
+
+</RadzenDataList>
+
+@code {
+
+    private List<WUserWithAchievements> Model = new();
+    private int totalCount = 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var args = new LoadDataArgs()
+            {
+                OrderBy = nameof(WUserWithAchievements.Score) + " desc",
+            };
+        var data = WUserWithAchievements.LoadData(db, args);
+        totalCount = data.TotalCount;
+        Model = data.Data ?? new List<WUserWithAchievements>();
+
+        if (data.Success == false)
+        {
+            NTF.Notify(new NotificationMessage()
+                {
+                    Severity = NotificationSeverity.Error,
+                    Summary = "Başarımlar yüklenemedi.",
+                    Detail = string.Join(Environment.NewLine, data.Messages),
+                    Duration = 5000
+                });
+        }
+        await Task.CompletedTask;
+    }
+}

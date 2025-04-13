@@ -1,0 +1,198 @@
+﻿@namespace FBC.Achievements.Components.Controls
+@inject DB db
+@inject Radzen.NotificationService NTF
+@inject IWebHostEnvironment env
+<RadzenCard Variant="Variant.Outlined" class="rz-p-0" Style="width: 100%; overflow: hidden;">
+    <RadzenRow Gap="0">
+        @if (ShowUserName)
+        {
+            <RadzenColumn Size="12" SizeLG="3" class="rz-p-4 product-title">
+                <RadzenText TextStyle="TextStyle.H6" TagName="TagName.H5" class="rz-mb-0">Kullanıcı</RadzenText>
+                <RadzenText TextStyle="TextStyle.H6" TagName="TagName.H5" class="rz-color-on-secondary-lighter">@(Model.UserFullName)</RadzenText>
+            </RadzenColumn>
+        }
+        else
+        {
+            <RadzenColumn Size="12" SizeLG="3" class="rz-p-4 product-title">
+                <RadzenStack Orientation="Orientation.Horizontal">
+                    <RadzenImage Path="@AFilePath" Style="width:64px; height:64px" AlternateText="Başarım" />
+                    <RadzenStack Orientation="Orientation.Vertical" Gap="5" Style="padding-left:5px">
+
+                        <RadzenText TextStyle="TextStyle.H6" TagName="TagName.H5" class="rz-mb-0">@(Model.AchievementTitle)</RadzenText>
+                        <RadzenText TextStyle="TextStyle.H6" TagName="TagName.H5" class="rz-color-on-secondary-lighter">@(Model.AchievementDescription)</RadzenText>
+                    </RadzenStack>
+                </RadzenStack>
+            </RadzenColumn>
+        }
+        <RadzenColumn Size="12" SizeLG="7" class="rz-p-4">
+            @if (Model.Goal > 1)
+            {
+                @if (IsEditable)
+                {
+                    <RadzenColumn Size="12" SizeMD="6" SizeLG="4">
+                        <RadzenText TextStyle="TextStyle.H6" TagName="TagName.H5" class="rz-mb-0">Başarım</RadzenText>
+                        <RadzenNumeric @bind-Value="CurrentGoalProgress" Style="width:100%; display: block;" Min="0" Max="Model.Goal" />
+
+                    </RadzenColumn>
+                }
+                @if (!IsEditable && ISGoalCompleted)
+                {
+                    <RadzenText TextStyle="TextStyle.H6" TagName="TagName.H5" class="rz-mb-0">İlerleme</RadzenText>
+                    <RadzenImage Path="@(ISGoalCompleted ? "/yes.jpg" : "/no.jpg")" Style="width:64px; height:64px" AlternateText="Başarım" />
+                }
+                @if (!ISGoalCompleted)
+                {
+                    <RadzenText TextStyle="TextStyle.H6" TagName="TagName.H5" class="rz-mb-0">İlerleme</RadzenText>
+
+
+                    <RadzenProgressBar ProgressBarStyle="ProgressBarStyle.Primary"
+                                       @bind-Value="@CurrentGoalProgressAsDouble"
+                                       ShowValue="false"
+                                       Min="0"
+                                       Max="Model.Goal"
+                                       Style="width:100%" />
+                }
+            }
+            else
+            {
+
+                @if (IsEditable)
+                {
+                    <RadzenCheckBox @bind-Value=@ISGoalCompleted Name="CheckBox1" />
+                    <RadzenLabel Text="Başarım gerçekleşirildi" Component="CheckBox1" class="rz-ms-2" />
+                }
+                else
+                {
+                    <RadzenText TextStyle="TextStyle.H6" TagName="TagName.H5" class="rz-mb-0">Başarım durumu</RadzenText>
+                    <RadzenImage Path="@(ISGoalCompleted ? "/yes.jpg" : "/no.jpg")" Style="width:64px; height:64px" AlternateText="Başarım" />
+
+                }
+            }
+        </RadzenColumn>
+        @if (IsEditable)
+        {
+            <RadzenColumn Size="12" SizeLG="2" class="rz-p-4">
+                <RadzenText TextStyle="TextStyle.H6" TagName="TagName.H5" class="rz-mb-0">&nbsp;</RadzenText>
+                @if (isModified)
+                {
+                    <RadzenButton Icon="check"
+                                  ButtonStyle="ButtonStyle.Success"
+                                  Variant="Variant.Flat"
+                                  Size="ButtonSize.Medium"
+                                  Click="Update"
+                                  aria-label="Kaydet" />
+
+                    @* <RadzenButton Text="Order now" Style="width: 100%" /> *@
+                }
+                <RadzenButton Icon="delete"
+                              ButtonStyle="ButtonStyle.Danger"
+                              Variant="Variant.Flat"
+                              Size="ButtonSize.Medium"
+                              Click="Delete"
+                              aria-label="Kullanıcı başarım ilişkisini kaldır" />
+            </RadzenColumn>
+        }
+    </RadzenRow>
+
+
+</RadzenCard>
+
+@code {
+    [Parameter]
+    public WUserAchievement Model { get; set; } = new WUserAchievement();
+    [Parameter]
+    public bool IsEditable { get; set; } = true;
+    [Parameter]
+    public bool ShowUserName { get; set; } = true;
+    [Parameter]
+    public EventCallback OnAssigmentDeleted { get; set; }
+
+    private string AFilePath
+    {
+        get
+        {
+            return C.Static.GetAchievementPictureWebPathOrDefault(env, Model.AchievementId);
+        }
+    }
+
+    private bool ISGoalCompleted
+    {
+        get { return Model.CurrentGoalProgress >= Model.Goal; }
+        set
+        {
+            Model.CurrentGoalProgress = value ? Model.Goal : 0;
+            isModified = true;
+        }
+    }
+    private bool isModified = false;
+
+    private double CurrentGoalProgressAsDouble
+    {
+        get { return Model.CurrentGoalProgress; }
+        set
+        {
+            Model.CurrentGoalProgress = (int)value;
+            isModified = true;
+        }
+    }
+
+    private int CurrentGoalProgress
+    {
+        get { return Model.CurrentGoalProgress; }
+        set
+        {
+            Model.CurrentGoalProgress = value;
+            isModified = true;
+        }
+    }
+
+    private void Update()
+    {
+        var r = db.UpdateUserGoalProgress(Model.UserAchievementId, Model.CurrentGoalProgress);
+        if (r.Success)
+        {
+            NTF.Notify(new NotificationMessage()
+                {
+                    Severity = NotificationSeverity.Success,
+                    Summary = "Başarım güncellendi",
+                    Duration = 2000
+                });
+            isModified = false;
+        }
+        else
+        {
+            NTF.Notify(new NotificationMessage()
+                {
+                    Severity = NotificationSeverity.Error,
+                    Summary = "Başarım güncellenemedi",
+                    Detail = "Hata: " + string.Join(Environment.NewLine, r.Messages),
+                    Duration = 2000
+                });
+        }
+    }
+
+    private void Delete()
+    {
+        var r = db.DeleteUserAchievement(Model.UserAchievementId);
+        if (r.Success)
+        {
+            NTF.Notify(new NotificationMessage()
+                {
+                    Severity = NotificationSeverity.Success,
+                    Summary = "Başarım silindi",
+                    Duration = 2000
+                });
+            OnAssigmentDeleted.InvokeAsync(true);
+        }
+        else
+        {
+            NTF.Notify(new NotificationMessage()
+                {
+                    Severity = NotificationSeverity.Error,
+                    Summary = "Başarım silinemedi",
+                    Detail = "Hata: " + string.Join(Environment.NewLine, r.Messages),
+                    Duration = 2000
+                });
+        }
+    }
+}

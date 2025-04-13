@@ -1,0 +1,53 @@
+﻿@inherits LayoutComponentBase
+<RadzenComponents @rendermode="InteractiveServer" />
+@inject NotificationService NotificationService
+
+
+<RadzenLayout>
+    <RadzenHeader>
+        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0">
+            <RadzenSidebarToggle Click="@(() => sidebar1Expanded = !sidebar1Expanded)" />
+            <RadzenLabel Text="Başarı Tablosu" />
+        </RadzenStack>
+    </RadzenHeader>
+    <RadzenSidebar @bind-Expanded="@sidebar1Expanded">
+        <RadzenPanelMenu>
+            <RadzenPanelMenuItem Text="Ana Sayfa" Icon="home" Path="@C.NAV.HomePage" />
+            <RadzenPanelMenuItem Text="Tanımlar" Icon="edit">
+                <RadzenPanelMenuItem Text="Başarımlar" Icon="trophy" Path="@C.NAV.Define.Achievements" />
+                <RadzenPanelMenuItem Text="Kullanıcılar" Icon="group" Path="@C.NAV.Define.Users" />
+                <RadzenPanelMenuItem Text="Araçlar" Icon="settings" Path="@C.NAV.Define.Tools" />
+                @*
+                <RadzenPanelMenuItem Text="Device Types" Icon="important_devices" Path="@C.NAV.Edit.DeviceTypeList" />
+                <RadzenPanelMenuItem Text="Device Groups" Icon="move_group" Path="@C.NAV.Edit.DeviceGroupList" />
+                <RadzenPanelMenuItem Text="Devices" Icon="devices_other" Path="@C.NAV.Edit.DeviceList" />
+                *@
+            </RadzenPanelMenuItem>
+        </RadzenPanelMenu>
+        <div class="rz-p-4">
+            Başarı Tablosu
+        </div>
+    </RadzenSidebar>
+    <RadzenBody>
+        <div class="rz-p-4">
+            @Body
+        </div>
+    </RadzenBody>
+    <RadzenFooter>
+        Başarı Tablosu - @DateTime.Now.Year
+    </RadzenFooter>
+</RadzenLayout>
+
+<RadzenNotification />
+<RadzenDialog />
+
+
+
+<div id="blazor-error-ui">
+    An unhandled error has occurred.
+    <a href="" class="reload">Reload</a>
+    <a class="dismiss">🗙</a>
+</div>
+@code {
+    bool sidebar1Expanded = true;
+}

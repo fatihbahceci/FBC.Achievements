@@ -1,0 +1,135 @@
+﻿@namespace FBC.Achievements.Components.Controls
+@inject DB db;
+@inject Radzen.NotificationService NTF
+<h3>Tüm başarımlar için tüm kullanıcılara kayıt oluştur</h3>
+<RadzenCard>
+    <RadzenStack Orientation="Orientation.Vertical">
+        <RadzenStack Orientation="Orientation.Vertical" AlignItems="AlignItems.Center">
+            @if (isProgressing)
+            {
+                <RadzenProgressBarCircular @ref="bar" Min="abarMin" Max="abarMax" Value="abarValue" ShowValue="true" Mode="ProgressBarMode.Determinate" />
+                <RadzenProgressBarCircular @ref="bar" Min="ubarMin" Max="ubarMax" Value="ubarValue" ShowValue="true" Mode="ProgressBarMode.Determinate" />
+            }
+            <RadzenButton ButtonType="ButtonType.Button" Text="İşleme başla" Click="@AssignAchievementToAllUsers" Disabled="isProgressing" />
+
+
+        </RadzenStack>
+        <EventConsole @ref=@console Title="İşlem detayları" ClearConsoleText="Temizle" />
+
+    </RadzenStack>
+</RadzenCard>
+@code {
+    EventConsole console;
+
+    bool isProgressing = false;
+    double ubarMin = 0;
+    double ubarMax = 100;
+    double ubarValue = 0;
+    double abarMin = 0;
+    double abarMax = 100;
+    double abarValue = 0;
+    int successCount = 0;
+    int errorCount = 0;
+    RadzenProgressBarCircular? bar;
+    //New users assigned event
+    [Parameter]
+    public EventCallback<bool> OnNewUsersAssigned { get; set; }
+    private async void AssignAchievementToAllUsers()
+    {
+        isProgressing = true;
+        var allAchievements = db.Achievements.AsNoTracking().ToList();
+        if (allAchievements?.Any() == true)
+        {
+            abarMin = 0;
+            abarMax = allAchievements.Count;
+            abarValue = 0;
+            errorCount = 0;
+            successCount = 0;
+            foreach (var achievement in allAchievements)
+            {
+                var usersThatHaveThisAchievement = db.UserAchievements.Where(x => x.AchievementId == achievement.Id).Select(x => x.UserId).ToArray();
+                var users = db.Users.AsNoTracking().Where(x => x.UserType == UserType.User && !usersThatHaveThisAchievement.Contains(x.Id)).ToList();
+                console.Log($"Başarım: {achievement.Title}");
+                if (users.Any())
+                {
+                    ubarMin = 0;
+                    ubarMax = users.Count;
+                    ubarValue = 0;
+                    foreach (var user in users)
+                    {
+                        console.Log($"Başarım veriliyor: {user.FullName} - {achievement.Title}");
+                        var userAchievement = new DBUserAchievement
+                            {
+                                UserId = user.Id,
+                                AchievementId = achievement.Id,
+                            // CompletedGoals = 0,
+                                CurrentGoalProgress = 0,
+                            };
+                        var r = db.AddUserAchievement(userAchievement);
+                        if (!r.Success)
+                        {
+                            NTF.Notify(new NotificationMessage()
+                                {
+                                    Severity = NotificationSeverity.Error,
+                                    Summary = "Başarım Verme Hatası",
+                                    Detail = string.Join(Environment.NewLine, r.Messages),
+                                    Duration = 5000
+                                });
+                            errorCount++;
+                        }
+                        else
+                        {
+                            successCount++;
+                        }
+                        // await Task.Delay(10);
+                        //Trigger page refresh for blazor
+                        await Task.Yield();
+                        await InvokeAsync(StateHasChanged);
+
+                        ubarValue++;
+                    }
+                    if (OnNewUsersAssigned.HasDelegate)
+                    {
+                        await OnNewUsersAssigned.InvokeAsync(true);
+                    }
+                }
+                else
+                {
+                    NTF.Notify(new NotificationMessage()
+                        {
+                            Severity = NotificationSeverity.Warning,
+                            Summary = "Kayıt yok",
+                            Detail = $"Bu başarım daha önce zaten tüm kullanıcılara verilmiş.",
+                            Duration = 5000
+                        });
+                }
+                abarValue++;
+            }
+        }
+        else
+        {
+            NTF.Notify(new NotificationMessage()
+                {
+                    Severity = NotificationSeverity.Warning,
+                    Summary = "Kayıt yok",
+                    Detail = $"Hiç başarım kaydı yok.",
+                    Duration = 5000
+                });
+        }
+        if (successCount + errorCount > 0)
+        {
+            var summaryMessage = $"Toplam: {successCount + errorCount}, Başarıyla Verilen: {successCount}, Hatalı: {errorCount}";
+            NTF.Notify(new NotificationMessage()
+                {
+                    Severity = NotificationSeverity.Success,
+                    Summary = "Başarım Verme İşlemi Tamamlandı",
+                    Detail = summaryMessage,
+                    Duration = 5000
+                });
+            console.Log(summaryMessage);
+        }
+        isProgressing = false;
+        await InvokeAsync(StateHasChanged);
+
+    }
+}

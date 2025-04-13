@@ -1,0 +1,118 @@
+﻿@namespace FBC.Achievements.Components.Controls
+@inject DB db;
+@inject Radzen.NotificationService NTF
+<h3>Tüm kullanıcılar için yeni başarım kaydı oluştur</h3>
+<RadzenCard>
+    <RadzenStack Orientation="Orientation.Vertical">
+        @if (ShowAchievementDetails)
+        {
+            <label><strong>Kazanım:</strong> @Achievement.Title</label>
+            <label><strong>Açıklama:</strong> @Achievement.Description</label>
+            <label><strong>Hedef:</strong> @Achievement.Goal</label>
+        }
+        <RadzenStack Orientation="Orientation.Vertical" AlignItems="AlignItems.Center">
+            @if (isProgressing)
+            {
+                <RadzenProgressBarCircular @ref="bar" Min="barMin" Max="barMax" Value="barValue" ShowValue="true" Mode="ProgressBarMode.Determinate" />
+            }
+            <RadzenButton ButtonType="ButtonType.Button" Text="İşleme başla" Click="@AssignAchievementToAllUsers" Disabled="isProgressing" />
+        </RadzenStack>
+    </RadzenStack>
+    @*     <RadzenCardHeader>
+        <h3 class="card-title">Tüm Kullanıcılara Başarım Ver</h3>
+    </RadzenCardHeader>
+    <RadzenCardBody>
+        <p>Bu işlem tüm kullanıcılar için başarım kaydı oluşturacaktır. Devam etmek istiyor musunuz?</p>
+    </RadzenCardBody>
+    <RadzenCardFooter>
+        <RadzenButton ButtonType="ButtonType.Button" Text="İptal" Click="@(() => DLG.Close(false))" />
+        <RadzenButton ButtonType="ButtonType.Button" Text="Devam Et" Click="@(() => DLG.Close(true))" />
+    </RadzenCardFooter> *@
+</RadzenCard>
+@code {
+    [Parameter]
+    public DBAchievement Achievement { get; set; } = new DBAchievement();
+    [Parameter]
+    public bool ShowAchievementDetails { get; set; } = false;
+    bool isProgressing = false;
+    double barMin = 0;
+    double barMax = 100;
+    double barValue = 0;
+    int successCount = 0;
+    int errorCount = 0;
+    RadzenProgressBarCircular? bar;
+    //New users assigned event
+    [Parameter]
+    public EventCallback<bool> OnNewUsersAssigned { get; set; }
+    private async void AssignAchievementToAllUsers()
+    {
+        isProgressing = true;
+        var usersThatHaveThisAchievement = db.UserAchievements.Where(x => x.AchievementId == Achievement.Id).Select(x => x.UserId).ToArray();
+        var users = db.Users.AsNoTracking().Where(x => x.UserType == UserType.User && !usersThatHaveThisAchievement.Contains(x.Id)).ToList();
+        if (users.Any())
+        {
+            barMin = 0;
+            barMax = users.Count;
+            barValue = 0;
+            errorCount = 0;
+            successCount = 0;
+            foreach (var user in users)
+            {
+                var userAchievement = new DBUserAchievement
+                    {
+                        UserId = user.Id,
+                        AchievementId = Achievement.Id,
+                        // CompletedGoals = 0,
+                        CurrentGoalProgress = 0,
+                    };
+                var r = db.AddUserAchievement(userAchievement);
+                if (!r.Success)
+                {
+                    NTF.Notify(new NotificationMessage()
+                        {
+                            Severity = NotificationSeverity.Error,
+                            Summary = "Başarım Verme Hatası",
+                            Detail = string.Join(Environment.NewLine, r.Messages),
+                            Duration = 5000
+                        });
+                    errorCount++;
+                }
+                else
+                {
+                    successCount++;
+                }
+                // await Task.Delay(10);
+                //Trigger page refresh for blazor
+                await Task.Yield();
+                await InvokeAsync(StateHasChanged);
+
+                barValue++;
+            }
+            NTF.Notify(new NotificationMessage()
+                {
+                    Severity = NotificationSeverity.Success,
+                    Summary = "Başarım Verme İşlemi Tamamlandı",
+                    Detail = $"Toplam: {users.Count}, Başarıyla Verilen: {successCount}, Hatalı: {errorCount}",
+                    Duration = 5000
+                });
+            if (OnNewUsersAssigned.HasDelegate)
+            {
+                await OnNewUsersAssigned.InvokeAsync(true);
+            }
+        }
+        else
+        {
+            NTF.Notify(new NotificationMessage()
+                {
+                    Severity = NotificationSeverity.Warning,
+                    Summary = "Kayıt yok",
+                    Detail = $"Bu başarım daha önce zaten tüm kullanıcılara verilmiş.",
+                    Duration = 5000
+                });
+        }
+
+        isProgressing = false;
+        await InvokeAsync(StateHasChanged);
+
+    }
+}
