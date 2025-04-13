@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace FBC.Achievements.DBModels
 {
@@ -23,6 +24,12 @@ namespace FBC.Achievements.DBModels
         public UserType UserType { get; set; } = UserType.NotSet;
         public string? Email { get; set; }
         public string FullName { get; set; } = String.Empty;
+
+        /// <summary>
+        /// Warning: Use this property as plain text password. Do not use hashing or encryption.
+        /// </summary>
+        [NotMapped]
+        public string? NewPassword { get; set; }
     }
     public class DBAchievement
     {

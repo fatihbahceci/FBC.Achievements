@@ -6,6 +6,12 @@ namespace FBC.Achievements.DBModels
 {
     public static class DBUserHelper
     {
+        /// <summary>
+        /// Also sets the password if NewPassword is set.
+        /// Also checks if password is empty for new admin or mentor users.
+        /// </summary>
+        /// <param name="user"></param>
+        /// <returns></returns>
         public static List<string> ValidateUser(this DBUser user)
         {
             var messages = new List<string>();
@@ -13,6 +19,10 @@ namespace FBC.Achievements.DBModels
             {
                 messages.Add("Kullanıcı geçersiz bir değere sahip");
                 return messages;
+            }
+            if (user.Id <= 0 && string.IsNullOrEmpty(user.NewPassword) && new UserType[] { UserType.Admin, UserType.Mentor }.Contains(user.UserType))
+            {
+                messages.Add("Yeni bir yönetici veya mentör kullanıcısı eklerken şifre boş olamaz");
             }
             if (string.IsNullOrWhiteSpace(user.UserName))
             {
@@ -29,6 +39,13 @@ namespace FBC.Achievements.DBModels
             if (user.UserType == UserType.NotSet)
             {
                 messages.Add("Kullanıcı tipi seçilmemiş");
+            }
+            if (!messages.Any())
+            {
+                if (!string.IsNullOrEmpty(user.NewPassword))
+                {
+                    user.Password = C.Tools.ToMD5(user.NewPassword);
+                }
             }
             return messages;
         }

@@ -62,6 +62,10 @@
                 <RadzenButton Icon="settings" ButtonStyle="ButtonStyle.Primary" Variant="Variant.Flat" Size="ButtonSize.Medium" Shade="Shade.Lighter" class="rz-my-1 rz-ms-1" Click="@(args => NAV.NavigateTo(C.NAV.Define.UserActions + context.Id))" @onclick:stopPropagation="true" />
             </Template>
             <EditTemplate>
+                @if (context.UserType != UserType.User && context.UserType != UserType.NotSet)
+                {
+                    <RadzenButton Icon="password" ButtonStyle="ButtonStyle.Primary" Variant="Variant.Flat" Size="ButtonSize.Medium" Shade="Shade.Lighter" class="rz-my-1 rz-ms-1" Click="@(args => SetPasswordFor(context))" @onclick:stopPropagation="true" />
+                }
                 <RadzenButton Icon="check" ButtonStyle="ButtonStyle.Success" Variant="Variant.Flat" Size="ButtonSize.Medium" Click="@((args) => SaveRow(context))" aria-label="Save" />
                 <RadzenButton Icon="close" ButtonStyle="ButtonStyle.Light" Variant="Variant.Flat" Size="ButtonSize.Medium" class="rz-my-1 rz-ms-1" Click="@((args) => CancelEdit(context))" aria-label="Cancel" />
             </EditTemplate>
@@ -80,17 +84,6 @@
     }
     private int nonFilteredTotalCount;
     private bool isInEditOrInsertMode = false;
-
-    // protected override void OnInitialized()
-    // {
-    //     data = Enumerable.Empty<DBModels.DBUser>().ToList(); // Initialize with an empty list to avoid InsertRow is not working issue
-    // }
-    // protected override async Task OnInitializedAsync()
-    // {
-    //     await base.OnInitializedAsync();
-    //     data = Enumerable.Empty<DBModels.DBUser>().ToList(); // Initialize with an empty list to avoid InsertRow is not working issue
-
-    // }
 
     private async Task LoadData(LoadDataArgs args)
     {
@@ -180,6 +173,7 @@
     }
     void CancelEdit(DBUser item)
     {
+        item.NewPassword = string.Empty;
         grid!.CancelEditRow(item);
         isInEditOrInsertMode = false;
     }
@@ -187,10 +181,10 @@
     {
         if (item == null) return;
         // grid!.UpdateRow(item);
-
         var r = item.Id > 0 ? db.UpdateUser(item) : db.AddUser(item);
         if (r.Success)
         {
+            item.NewPassword = string.Empty;
             NTF.Notify(new NotificationMessage()
                 {
                     Severity = NotificationSeverity.Success,
@@ -215,6 +209,20 @@
                     });
             }
         }
+    }
+    private void ApplyPassword(DBUser user, string password)
+    {
+        user.NewPassword = password;
+        DLG.CloseSide();
+        DLG.Alert($"Kullanıcı şifresi, değişiklikleri kaydedince veri tabanında güncellenecek", "Şifre Güncelleme", new ConfirmOptions() { OkButtonText = "Tamam" });
+    }
+    private void SetPasswordFor(DBUser user)
+    {
+        DLG.OpenSideAsync<SetPassword>("Şifre Belirle", new Dictionary<string, object>()
+        {
+            { "OnPasswordSet", EventCallback.Factory.Create<string>(this, (password) => ApplyPassword(user, password)) },
+            { "OnPasswordSetCancel", EventCallback.Factory.Create(this, () => { DLG.CloseSide(); }) }
+        });
     }
 
 }
