@@ -1,4 +1,6 @@
 ﻿@attribute [Route(C.NAV.Define.Users)]
+@attribute [Authorize(Roles = C.User.AdminRole)]
+
 @inject DB db
 @inject Radzen.NotificationService NTF
 @inject DialogService DLG

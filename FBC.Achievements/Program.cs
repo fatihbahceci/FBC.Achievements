@@ -1,6 +1,8 @@
+using FBC.Achievements;
 using FBC.Achievements.Components;
 using FBC.Achievements.DBModels;
 using FBC.Achievements.Services;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Components.Authorization;
 using Radzen;
 
@@ -17,6 +19,12 @@ builder.Services.AddRazorComponents()
 
 //Radzen Components
 builder.Services.AddRadzenComponents();
+#region Unable to find the required 'IAuthenticationService' service (When logout and refresh the page)
+builder.Services.AddAuthentication("FakeScheme")
+    .AddScheme<AuthenticationSchemeOptions, FakeAuthenticationHandler>("FakeScheme", options => { });
+builder.Services.AddAuthorization();
+#region
+
 builder.Services.AddScoped<AuthenticationStateProvider, CustomAuthStateProvider>();
 
 builder.Services.AddScoped<NotificationService>();
@@ -31,8 +39,13 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.UseStaticFiles();
+app.UseRouting();
 app.UseAntiforgery();
+#region Unable to find the required 'IAuthenticationService' service (When logout and refresh the page)
 
+app.UseAuthentication();
+app.UseAuthorization();
+#endregion
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 

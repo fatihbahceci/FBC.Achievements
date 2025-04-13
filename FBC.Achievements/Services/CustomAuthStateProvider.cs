@@ -1,9 +1,50 @@
 ﻿using FBC.Achievements.DBModels;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Components.Authorization;
+using Microsoft.Extensions.Options;
+using Radzen;
 using System.Security.Claims;
+using System.Text.Encodings.Web;
 
 namespace FBC.Achievements.Services
 {
+    public class FakeAuthenticationHandler : AuthenticationHandler<AuthenticationSchemeOptions>
+    {
+        public FakeAuthenticationHandler(IOptionsMonitor<AuthenticationSchemeOptions> options, ILoggerFactory logger, UrlEncoder encoder) : base(options, logger, encoder)
+        {
+        }
+
+        protected override Task<AuthenticateResult> HandleAuthenticateAsync()
+        {
+            // Boş ve yetkisiz bir kullanıcı tanımı (anonim gibi)
+            var identity = new ClaimsIdentity(); // boş bırakılıyor
+            var principal = new ClaimsPrincipal(identity);
+            var ticket = new AuthenticationTicket(principal, Scheme.Name);
+            return Task.FromResult(AuthenticateResult.Success(ticket));
+        }
+        protected override Task HandleChallengeAsync(AuthenticationProperties properties)
+        {
+            Context.Response.Redirect(C.NAV.Login);
+            return base.HandleChallengeAsync(properties);
+        }
+        protected override Task HandleForbiddenAsync(AuthenticationProperties properties)
+        {
+            //Eğer login sayfası için request gelmiş ise 201 döndür yoksa Login sayfasına yönlendir
+            if (Context.Request.Path == C.NAV.Login)
+            {
+                Context.Response.StatusCode = 201;
+                return Task.CompletedTask;
+            }
+            else
+            {
+                Context.Response.Redirect(C.NAV.Login);
+                return Task.CompletedTask;
+                //return base.HandleForbiddenAsync(properties);
+            }
+
+        }
+    }
+
     public class CustomAuthStateProvider : AuthenticationStateProvider
     {
         private DBUser? currentUser;
@@ -64,6 +105,10 @@ namespace FBC.Achievements.Services
             {
                 return "Geçersiz kullanıcı adı veya şifre.";
             }
+        }
+        public void Logout()
+        {
+            NotifyUserLogout();
         }
     }
 }

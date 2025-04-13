@@ -1,6 +1,7 @@
 ﻿@inherits LayoutComponentBase
 <RadzenComponents @rendermode="InteractiveServer" />
 @inject NotificationService NotificationService
+@inject AuthenticationStateProvider mgr
 
 
 <RadzenLayout>
@@ -16,7 +17,7 @@
                     </RadzenLabel>
                 </Authorized>
                 <NotAuthorized>
-                    <RadzenLink Style="padding-left:30px" Text="Giriş" Path="@C.NAV.Login"/>
+                    <RadzenLink Style="padding-left:30px" Text="Giriş" Path="@C.NAV.Login" />
                 </NotAuthorized>
             </AuthorizeView>
         </RadzenStack>
@@ -24,16 +25,17 @@
     <RadzenSidebar @bind-Expanded="@sidebar1Expanded">
         <RadzenPanelMenu>
             <RadzenPanelMenuItem Text="Ana Sayfa" Icon="home" Path="@C.NAV.HomePage" />
-            <RadzenPanelMenuItem Text="Tanımlar" Icon="edit">
-                <RadzenPanelMenuItem Text="Başarımlar" Icon="trophy" Path="@C.NAV.Define.Achievements" />
-                <RadzenPanelMenuItem Text="Kullanıcılar" Icon="group" Path="@C.NAV.Define.Users" />
-                <RadzenPanelMenuItem Text="Araçlar" Icon="settings" Path="@C.NAV.Define.Tools" />
-                @*
-                <RadzenPanelMenuItem Text="Device Types" Icon="important_devices" Path="@C.NAV.Edit.DeviceTypeList" />
-                <RadzenPanelMenuItem Text="Device Groups" Icon="move_group" Path="@C.NAV.Edit.DeviceGroupList" />
-                <RadzenPanelMenuItem Text="Devices" Icon="devices_other" Path="@C.NAV.Edit.DeviceList" />
-                *@
-            </RadzenPanelMenuItem>
+            <AuthorizeView Roles="@C.User.AdminOrMentorRole">
+                <RadzenPanelMenuItem Text="Tanımlar" Icon="edit">
+                    <RadzenPanelMenuItem Text="Başarımlar" Icon="trophy" Path="@C.NAV.Define.Achievements" />
+                    <AuthorizeView Context="ruknettin" Roles="@C.User.AdminRole">
+
+                        <RadzenPanelMenuItem Text="Kullanıcılar" Icon="group" Path="@C.NAV.Define.Users" />
+                    </AuthorizeView>
+                    <RadzenPanelMenuItem Text="Araçlar" Icon="settings" Path="@C.NAV.Define.Tools" />
+                </RadzenPanelMenuItem>
+                <RadzenPanelMenuItem Text="Çıkış" Icon="logout" Click="()=> (mgr as CustomAuthStateProvider)!.Logout()" />
+            </AuthorizeView>
         </RadzenPanelMenu>
         <div class="rz-p-4">
             Başarı Tablosu

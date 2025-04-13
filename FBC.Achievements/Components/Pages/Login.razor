@@ -3,6 +3,7 @@
 @attribute [Route(C.NAV.Login)]
 @attribute [AllowAnonymous]
 @inject AuthenticationStateProvider mgr
+
 @inject NavigationManager Navi
 
 <RadzenRow Gap="0" class="rz-my-12 rz-mx-auto rz-border-radius-6 rz-shadow-10" Style="width: 100%; max-width: 800px; overflow: hidden;">
@@ -53,7 +54,7 @@
         {
             trying = true;
             InvokeAsync(() => StateHasChanged());
-            var r = (mgr as CustomAuthStateProvider).Login(args.Username, args.Password/* , args.RememberMe */);
+            var r = (mgr as CustomAuthStateProvider)!.Login(args.Username, args.Password/* , args.RememberMe */);
             if (string.IsNullOrEmpty(r))
             {
                 Navi.NavigateTo("/");

@@ -1,4 +1,5 @@
 ﻿@attribute [Route(C.NAV.Define.AchievementActions + "{Id:int}")]
+@attribute [Authorize(Roles = C.User.AdminOrMentorRole)]
 @inject DB db
 @inject Radzen.NotificationService NTF
 @inject DialogService DLG

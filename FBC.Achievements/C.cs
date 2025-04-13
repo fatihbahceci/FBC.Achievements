@@ -13,6 +13,11 @@ namespace FBC.Achievements
                 UserType.Admin,
                 UserType.Mentor
             ];
+            public const string AdminRole = nameof(UserType.Admin);
+            public const string MentorRole = nameof(UserType.Mentor);
+            public const string UserRole = nameof(UserType.User);
+            public const string AdminOrMentorRole = AdminRole + "," + MentorRole;
+
         }
         public static class Static
         {

@@ -1,7 +1,10 @@
-﻿<Router AppAssembly="typeof(Program).Assembly">
+﻿<!-- https://docs.microsoft.com/en-us/aspnet/core/blazor/security/?view=aspnetcore-6.0#expose-the-authentication-state-as-a-cascading-parameter -->
+@* <CascadingAuthenticationState> *@
+<Router AppAssembly="typeof(Program).Assembly">
     <Found Context="routeData">
         @* <RouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)" /> *@
         <AuthorizeRouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)" />
         <FocusOnNavigate RouteData="routeData" Selector="h1" />
     </Found>
 </Router>
+@* </CascadingAuthenticationState> *@
