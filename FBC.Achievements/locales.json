@@ -1,0 +1,14 @@
+{
+  "en": {
+    "Achievement.Title": "Title",
+    "Achievement.Description": "Description",
+    "Achievement.Goal": "Goal",
+    "Achievement.Error.NotFound": "Achievement not found",
+  },
+  "tr": {
+    "Achievement.Title": "Başlık",
+    "Achievement.Description": "Açıklama",
+    "Achievement.Goal": "Hedef",
+    "Achievement.Error.NotFound": "Başarım bulunamadı",
+  }
+}

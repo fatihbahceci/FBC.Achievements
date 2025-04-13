@@ -1,10 +1,23 @@
 ﻿using FBC.Achievements.DBModels;
+using Microsoft.Extensions.Localization;
 using Radzen.Blazor;
 
 namespace FBC.Achievements
 {
     public static class C
     {
+        public static class L
+        {
+            public static class Achievement
+            {
+                public static LocalizedString Title(IStringLocalizer localizer) => localizer["Achievement.Title"];
+                public static LocalizedString Description(IStringLocalizer localizer) => localizer["Achievement.Description"];
+                public static LocalizedString Goal(IStringLocalizer localizer) => localizer["Achievement.Goal"];
+
+                public static LocalizedString ErrorNotFound(IStringLocalizer localizer) => localizer["Achievement.Error.NotFound"];
+
+            }
+        }
         public static class User
         {
             //Login olabilme yetisine sahip kullanıcı türleri

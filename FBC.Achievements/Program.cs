@@ -4,6 +4,7 @@ using FBC.Achievements.DBModels;
 using FBC.Achievements.Services;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Components.Authorization;
+using Microsoft.Extensions.Localization;
 using Radzen;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -16,6 +17,13 @@ builder.Logging.AddConsole();
 // Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
+
+builder.Services.AddSingleton<IStringLocalizer>(provider =>
+{
+    var env = provider.GetRequiredService<IHostEnvironment>();
+    var filePath = Path.Combine(AppContext.BaseDirectory, "locales.json");
+    return new JsonStringLocalizer(filePath);
+});
 
 //Radzen Components
 builder.Services.AddRadzenComponents();
@@ -30,6 +38,7 @@ builder.Services.AddScoped<AuthenticationStateProvider, CustomAuthStateProvider>
 builder.Services.AddScoped<NotificationService>();
 builder.Services.AddScoped<DialogService>();
 builder.Services.AddScoped<DB>();
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.

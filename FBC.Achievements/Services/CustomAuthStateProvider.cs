@@ -1,13 +1,97 @@
 ﻿using FBC.Achievements.DBModels;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Components.Authorization;
+using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Options;
 using Radzen;
+using System.Collections.Concurrent;
+using System.Globalization;
 using System.Security.Claims;
 using System.Text.Encodings.Web;
+using System.Text.Json;
 
 namespace FBC.Achievements.Services
 {
+    public class JsonStringLocalizer : IStringLocalizer
+    {
+        private readonly string _filePath;
+        private readonly ConcurrentDictionary<string, Dictionary<string, string>> _localizations;
+
+        public JsonStringLocalizer(string filePath)
+        {
+            _filePath = filePath;
+            _localizations = new ConcurrentDictionary<string, Dictionary<string, string>>();
+            LoadLocalizations();
+        }
+
+        private void LoadLocalizations()
+        {
+            // JSON dosyasını oku
+            var json = File.ReadAllText(_filePath);
+            // Dönüştür: { "en": { ... }, "tr": { ... } }
+            var data = JsonSerializer.Deserialize<Dictionary<string, Dictionary<string, string>>>(json);
+            if (data != null)
+            {
+                foreach (var kvp in data)
+                {
+                    _localizations.TryAdd(kvp.Key, kvp.Value);
+                }
+            }
+        }
+
+        public LocalizedString this[string name]
+        {
+            get
+            {
+                var value = GetString(name);
+                return new LocalizedString(name, value ?? name, resourceNotFound: value == null);
+            }
+        }
+
+        public LocalizedString this[string name, params object[] arguments]
+        {
+            get
+            {
+                var format = GetString(name) ?? name;
+                var value = string.Format(format, arguments);
+                return new LocalizedString(name, value, resourceNotFound: format == name);
+            }
+        }
+
+        private string? GetString(string key)
+        {
+            // Örneğin, aktif kültürü alabiliriz. (Alternatif olarak DI üzerinden kültür yönetimi de ekleyebilirsiniz.)
+            var culture = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName;
+            if (_localizations.TryGetValue(culture, out var localizedValues))
+            {
+                if (localizedValues.TryGetValue(key, out var value))
+                {
+                    return value;
+                }
+            }
+            // Bulunamazsa varsayılan olarak key değeri dönebilir
+            return key;
+        }
+
+        public IEnumerable<LocalizedString> GetAllStrings(bool includeParentCultures)
+        {
+            var culture = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName;
+            if (_localizations.TryGetValue(culture, out var localizedValues))
+            {
+                foreach (var kv in localizedValues)
+                {
+                    yield return new LocalizedString(kv.Key, kv.Value, resourceNotFound: false);
+                }
+            }
+        }
+
+        public IStringLocalizer WithCulture(CultureInfo culture)
+        {
+            // Eğer gerekiyorsa, bu yöntem ile farklı bir kültür için yeni instance döndürebilirsiniz.
+            return new JsonStringLocalizer(_filePath);
+        }
+    }
+
     public class FakeAuthenticationHandler : AuthenticationHandler<AuthenticationSchemeOptions>
     {
         public FakeAuthenticationHandler(IOptionsMonitor<AuthenticationSchemeOptions> options, ILoggerFactory logger, UrlEncoder encoder) : base(options, logger, encoder)
