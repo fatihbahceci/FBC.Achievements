@@ -8,6 +8,17 @@
         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0">
             <RadzenSidebarToggle Click="@(() => sidebar1Expanded = !sidebar1Expanded)" />
             <RadzenLabel Text="Başarı Tablosu" />
+
+            <AuthorizeView>
+                <Authorized>
+                    <RadzenLabel Style="padding-left:10px">
+                        Merhaba, @context.User.Identity?.Name
+                    </RadzenLabel>
+                </Authorized>
+                <NotAuthorized>
+                    <RadzenLink Style="padding-left:30px" Text="Giriş" Path="@C.NAV.Login"/>
+                </NotAuthorized>
+            </AuthorizeView>
         </RadzenStack>
     </RadzenHeader>
     <RadzenSidebar @bind-Expanded="@sidebar1Expanded">

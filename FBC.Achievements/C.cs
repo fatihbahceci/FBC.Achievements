@@ -1,9 +1,19 @@
-﻿using Radzen.Blazor;
+﻿using FBC.Achievements.DBModels;
+using Radzen.Blazor;
 
 namespace FBC.Achievements
 {
     public static class C
     {
+        public static class User
+        {
+            //Login olabilme yetisine sahip kullanıcı türleri
+            public readonly static UserType[] UsersThatCanLogin =
+            [
+                UserType.Admin,
+                UserType.Mentor
+            ];
+        }
         public static class Static
         {
             public const string PicturesPath = "Pictures/";
@@ -46,6 +56,7 @@ namespace FBC.Achievements
         public static class NAV
         {
             public const string HomePage = "/";
+            public const string Login = "/Login";
             public static class Define
             {
                 private const string Base = "Define/";

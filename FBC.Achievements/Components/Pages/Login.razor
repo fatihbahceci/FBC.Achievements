@@ -1,0 +1,87 @@
+﻿@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@attribute [Route(C.NAV.Login)]
+@attribute [AllowAnonymous]
+@inject AuthenticationStateProvider mgr
+@inject NavigationManager Navi
+
+<RadzenRow Gap="0" class="rz-my-12 rz-mx-auto rz-border-radius-6 rz-shadow-10" Style="width: 100%; max-width: 800px; overflow: hidden;">
+
+    <RadzenColumn Size="12" SizeMD="6">
+        <RadzenCard class="rz-shadow-0 rz-border-radius-0 rz-text-align-center rz-p-12" Style="height: 100%; background: linear-gradient(to bottom, #4f4f4f, #ffffff);">
+            <RadzenText TextStyle="TextStyle.DisplayH3" TagName="TagName.H2" class="rz-color-white rz-mb-6">FBC</RadzenText>
+            <RadzenText TextStyle="TextStyle.H6" class="rz-color-white">Başarım Tablosu</RadzenText>
+@*             <RadzenText TextStyle="TextStyle.Body2" class="rz-color-white">
+                <RadzenLink Path="https://github.com/fatihbahceci/FBC.Basit.Cari" Text="Github" Icon="public" Target="_blank" />
+            </RadzenText> *@
+        </RadzenCard>
+    </RadzenColumn>
+    <RadzenColumn Size="12" SizeMD="6">
+        <RadzenCard class="rz-shadow-0 rz-border-radius-0 rz-p-12">
+            <RadzenTemplateForm Data=@("LoginWithDefaultValues")>
+                <RadzenLogin AllowRegister="false" AllowResetPassword="false" Username=@userName Password=@password
+                             AllowRememberMe="false" RememberMe="@rememberMe"
+                             Login=@(args => OnLogin(args, "Login with default values"))
+                             ResetPassword=@(args => OnResetPassword(args, "Login with default values"))
+                             Register=@(args => OnRegister("Login with default values"))
+                             LoginText="Giriş"
+                             PasswordText="Parola"
+                             UserText="Kullanıcı Adı" />
+            </RadzenTemplateForm>
+        </RadzenCard>
+    </RadzenColumn>
+</RadzenRow>
+ @if (!string.IsNullOrEmpty(loginMessage))
+{
+    <RadzenAlert AlertStyle="AlertStyle.Danger" Severity="AlertSeverity.Error" AllowClose="false">
+        @loginMessage
+    </RadzenAlert>
+}
+
+@code {
+
+    string userName = string.Empty;
+    string password = string.Empty;
+    string loginMessage = string.Empty;
+    bool rememberMe = true;
+    bool trying = false;
+
+    void OnLogin(LoginArgs args, string name)
+    {
+        //console.Log($"{name} -> Username: {args.Username}, password: {args.Password}, remember me: {args.RememberMe}");
+        try
+        {
+            trying = true;
+            InvokeAsync(() => StateHasChanged());
+            var r = (mgr as CustomAuthStateProvider).Login(args.Username, args.Password/* , args.RememberMe */);
+            if (string.IsNullOrEmpty(r))
+            {
+                Navi.NavigateTo("/");
+            }
+            else
+            {
+                loginMessage = r;
+            }
+        }
+        catch (Exception exc)
+        {
+            loginMessage = "Hata: " + exc.Message;
+        }
+        finally
+        {
+            trying = false;
+            InvokeAsync(() => StateHasChanged());
+        }
+    }
+
+    void OnRegister(string name)
+    {
+        // console.Log($"{name} -> Register");
+    }
+
+    void OnResetPassword(string value, string name)
+    {
+        // console.Log($"{name} -> ResetPassword for user: {value}");
+    }
+
+}

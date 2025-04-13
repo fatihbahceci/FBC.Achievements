@@ -1,5 +1,7 @@
 using FBC.Achievements.Components;
 using FBC.Achievements.DBModels;
+using FBC.Achievements.Services;
+using Microsoft.AspNetCore.Components.Authorization;
 using Radzen;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -15,6 +17,8 @@ builder.Services.AddRazorComponents()
 
 //Radzen Components
 builder.Services.AddRadzenComponents();
+builder.Services.AddScoped<AuthenticationStateProvider, CustomAuthStateProvider>();
+
 builder.Services.AddScoped<NotificationService>();
 builder.Services.AddScoped<DialogService>();
 builder.Services.AddScoped<DB>();
