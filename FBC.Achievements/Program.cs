@@ -23,7 +23,7 @@ builder.Services.AddRadzenComponents();
 builder.Services.AddAuthentication("FakeScheme")
     .AddScheme<AuthenticationSchemeOptions, FakeAuthenticationHandler>("FakeScheme", options => { });
 builder.Services.AddAuthorization();
-#region
+#endregion
 
 builder.Services.AddScoped<AuthenticationStateProvider, CustomAuthStateProvider>();
 
@@ -42,7 +42,6 @@ app.UseStaticFiles();
 app.UseRouting();
 app.UseAntiforgery();
 #region Unable to find the required 'IAuthenticationService' service (When logout and refresh the page)
-
 app.UseAuthentication();
 app.UseAuthorization();
 #endregion
