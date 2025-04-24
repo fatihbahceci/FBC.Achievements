@@ -49,7 +49,7 @@ namespace FBC.Achievements.DBModels
                         UserFullName = g.FirstOrDefault()!.UserFullName,
                         UserName = g.FirstOrDefault()!.UserName,
                         UserAchievements = g.ToList(),
-                        Score = g.Sum(x => x.Score) // / g.Count()
+                        Score =Math.Round( g.Sum(x => x.Score),2) // / g.Count()
                     }).ToList();
 
                 r.TotalCount = r.Data?.Count ?? 0;
